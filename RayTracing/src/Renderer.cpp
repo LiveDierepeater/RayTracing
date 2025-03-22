@@ -23,12 +23,15 @@ void Renderer::OnRezise(uint32_t width, uint32_t height)
 
 void Renderer::Render()
 {
+	float aspectRatio = m_FinalImage->GetWidth() / (float)m_FinalImage->GetHeight();
+
 	for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
 	{
 		for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
 		{
 			glm::vec2 coord = { (float)x / (float)m_FinalImage->GetWidth(), (float)y / (float)m_FinalImage->GetHeight() };
 			coord = coord * 2.0f - 1.0f;
+			coord.x *= aspectRatio;
 			m_ImageData[x + y * m_FinalImage->GetWidth()] = PerPixel(coord);
 		}
 	}
@@ -43,7 +46,7 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 	glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);
 	float radius = 0.5f;
-	rayDirection = glm::normalize(rayDirection);
+	//rayDirection = glm::normalize(rayDirection);
 
 	// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 - r^2) = 0
 	// where
@@ -52,7 +55,7 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 	// r = radius
 	// t = hit distance
 
-	float a = glm::dot(rayDirection, rayDirection);
+	float a = 1.0f; //glm::dot(rayDirection, rayDirection);
 	float b = 2.0f * glm::dot(rayOrigin, rayDirection);
 	float c = glm::dot(rayOrigin, rayOrigin) - radius * radius;
 
