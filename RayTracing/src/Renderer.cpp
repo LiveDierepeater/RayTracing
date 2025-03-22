@@ -38,10 +38,12 @@ void Renderer::Render()
 
 uint32_t Renderer::PerPixel(glm::vec2 coord)
 {
+	glm::vec3 sphereOrigin(0.0f);
+
 	glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);
 	float radius = 0.5f;
-	//rayDirection = glm::normalize(rayDirection);
+	rayDirection = glm::normalize(rayDirection);
 
 	// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 - r^2) = 0
 	// where
@@ -60,7 +62,24 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 	float discriminant = b * b - 4.0f * a * c;
 
 	if (discriminant >= 0.0f)
+	{
+		float t = -1.0f * b - std::sqrt(discriminant);
+
+		if (t > 0)
+		{
+			t = t / (2.0f * a);
+			glm::vec3 hitPoint = rayOrigin + rayDirection * t;
+			glm::vec3 hitNormal = glm::normalize(hitPoint - sphereOrigin);
+
+			auto lightIntensity = glm::dot(-rayDirection, hitNormal);
+			lightIntensity = glm::clamp(lightIntensity, 0.0f, 1.0f);
+
+			auto brightness = (uint8_t)(255.0f * lightIntensity);
+			return 0xff000000 | (brightness << 16) | (brightness << 8) | brightness;
+		}
+
 		return 0xffff00ff;
+	}
 
 	return 0xff000000;
 }
