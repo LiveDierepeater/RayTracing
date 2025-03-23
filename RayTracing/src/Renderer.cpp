@@ -2,6 +2,19 @@
 
 #include "Walnut/Random.h"
 
+namespace Utils {
+	static uint32_t ConvertToRGBA(const glm::vec4& color)
+	{
+		uint8_t r = (uint8_t)(color.r * 255.0f);
+		uint8_t g = (uint8_t)(color.g * 255.0f);
+		uint8_t b = (uint8_t)(color.b * 255.0f);
+		uint8_t a = (uint8_t)(color.a * 255.0f);
+
+		uint32_t result = (a << 24) | (b << 16) | (g << 8) | r;
+		return result;
+	}
+}
+
 void Renderer::OnRezise(uint32_t width, uint32_t height)
 {
 	if (m_FinalImage)
@@ -32,18 +45,21 @@ void Renderer::Render()
 			glm::vec2 coord = { (float)x / (float)m_FinalImage->GetWidth(), (float)y / (float)m_FinalImage->GetHeight() };
 			coord = coord * 2.0f - 1.0f;
 			coord.x *= aspectRatio;
-			m_ImageData[x + y * m_FinalImage->GetWidth()] = PerPixel(coord);
+
+			glm::vec4 color = PerPixel(coord);
+			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+			m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
 		}
 	}
 
 	m_FinalImage->SetData(m_ImageData);
 }
 
-uint32_t Renderer::PerPixel(glm::vec2 coord)
+glm::vec4 Renderer::PerPixel(glm::vec2 coord)
 {
 	glm::vec3 sphereOrigin(0.0f);
 
-	glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);
+	glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);
 	float radius = 0.5f;
 	//rayDirection = glm::normalize(rayDirection);
@@ -55,7 +71,7 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 	// r = radius
 	// t = hit distance
 
-	float a = 1.0f; //glm::dot(rayDirection, rayDirection);
+	float a = glm::dot(rayDirection, rayDirection);
 	float b = 2.0f * glm::dot(rayOrigin, rayDirection);
 	float c = glm::dot(rayOrigin, rayOrigin) - radius * radius;
 
@@ -64,27 +80,24 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 
 	float discriminant = b * b - 4.0f * a * c;
 
-	if (discriminant >= 0.0f)
-	{
-		float t = -1.0f * b - std::sqrt(discriminant);
+	if (discriminant < 0.0f)
+		return glm::vec4(0, 0, 0, 1);
+	
+	// (-b +- sqrt(discriminant)) / 2a
+	float t0 = (-b + glm::sqrt(discriminant)) / (2.0f * a);
+	float closestT = (-b - glm::sqrt(discriminant)) / (2.0f * a);
 
-		if (t > 0)
-		{
-			t = t / (2.0f * a);
-			glm::vec3 hitPoint = rayOrigin + rayDirection * t;
-			glm::vec3 hitNormal = glm::normalize(hitPoint - sphereOrigin);
+	glm::vec3 hitPoint = rayOrigin + rayDirection * closestT;
+	glm::vec3 hitNormal = glm::normalize(hitPoint);
 
-			auto lightIntensity = glm::dot(-rayDirection, hitNormal);
-			lightIntensity = glm::clamp(lightIntensity, 0.0f, 1.0f);
+	glm::vec3 lightDir = glm::normalize(m_LightDirection);
 
-			auto brightness = (uint8_t)(255.0f * lightIntensity);
-			return 0xff000000 | (brightness << 16) | (brightness << 8) | brightness;
-		}
+	auto lightIntensity = glm::max(glm::dot(hitNormal , -lightDir), 0.0f);
 
-		return 0xffff00ff;
-	}
-
-	return 0xff000000;
+	auto sphereColor = m_SphereColor;
+	//sphereColor = hitNormal * 0.5f + 0.5f;
+	sphereColor *= lightIntensity;
+	return glm::vec4(sphereColor, 1.0f);
 }
 
 // calculate hit distances/point
@@ -92,3 +105,24 @@ uint32_t Renderer::PerPixel(glm::vec2 coord)
 // apply some shading to the sphere
 // implement aspect ratio
 // be able to move sphere
+
+
+// ===== S E L F    M A D E    C O D E  ===== //
+// =====          22.03.2025            ===== //
+/*float t = -b - std::sqrt(discriminant);
+
+if (t > 0)
+{
+	t = t / (2.0f * a);
+	glm::vec3 hitPoint = rayOrigin + rayDirection * t;
+	glm::vec3 hitNormal = glm::normalize(hitPoint - sphereOrigin);
+
+	auto lightIntensity = glm::dot(-rayDirection, hitNormal);
+	lightIntensity = glm::clamp(lightIntensity, 0.0f, 1.0f);
+
+	auto brightness = (uint8_t)(255.0f * lightIntensity);
+	//return 0xff000000 | (brightness << 16) | (brightness << 8) | brightness;
+	return glm::vec4(lightIntensity, lightIntensity, lightIntensity, 1);
+}
+
+return glm::vec4(1, 0, 1, 1);*/

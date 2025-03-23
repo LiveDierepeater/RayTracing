@@ -15,6 +15,13 @@ public:
 	{
 		ImGui::Begin("Settings");
 		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
+
+		ImGui::SliderFloat3("Sphere Color: ", m_SphereColor, 0, 1);
+		m_Renderer.SetSphereColor(glm::vec3(m_SphereColor[0], m_SphereColor[1], m_SphereColor[2]));
+
+		ImGui::SliderFloat3("Light Direction: ", m_LightDirection, -1, 1);
+		m_Renderer.SetLightDirection(glm::vec3(m_LightDirection[0], m_LightDirection[1], m_LightDirection[2]));
+
 		if (ImGui::Button("Render"))
 		{
 			Render();
@@ -50,6 +57,9 @@ public:
 private:
 	Renderer m_Renderer;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+
+	float m_SphereColor[3] = { 0.7f, 0.7f, 1.0f };
+	float m_LightDirection[3] = { -0.77f, -0.5f, -0.87f };
 
 	float m_LastRenderTime = 0.0f;
 };
