@@ -60,18 +60,37 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 	ray.Origin = m_ActiveCamera->GetPosition();
 	ray.Direction = m_ActiveCamera->GetRayDirections()[x + y * m_FinalImage->GetWidth()];
 
-	Renderer::HitPayload payload = TraceRay(ray);
-	if (payload.HitDistance < 0.0f)
-		return glm::vec4(0, 0, 0, 1.0f);
+	glm::vec3 color(0.0f);
 
-	glm::vec3 lightDir = glm::normalize(m_LightDirection);
-	float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f);
+	float multiplier = 1.0f;
 
-	const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+	int bounces = 2;
+	for (int i = 0; i < bounces; i++)
+	{
+		Renderer::HitPayload payload = TraceRay(ray);
+		if (payload.HitDistance < 0.0f)
+		{
+			glm::vec3 skyColor = glm::vec3(0.0f, 0.0f, 0.0f);
+			color += skyColor * multiplier;
+			break;
+		}
 
-	auto sphereColor = sphere.Albedo;
-	sphereColor *= lightIntensity;
-	return glm::vec4(sphereColor, 1.0f);
+		glm::vec3 lightDir = glm::normalize(m_LightDirection);
+		float lightIntensity = glm::max(glm::dot(payload.WorldNormal, -lightDir), 0.0f);
+
+		const Sphere& sphere = m_ActiveScene->Spheres[payload.ObjectIndex];
+
+		auto sphereColor = sphere.Albedo;
+		sphereColor *= lightIntensity;
+		color += sphereColor * multiplier;
+
+		multiplier *= 0.7f;
+
+		ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f;
+		ray.Direction = glm::reflect(ray.Direction, payload.WorldNormal);
+	}
+
+	return glm::vec4(color, 1.0f);
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
@@ -106,10 +125,10 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 		// Quadratic formula:
 		// (-b +- sqrt(discriminant)) / 2a
 
-		float closestT = (-b - glm::sqrt(discriminant)) / (2.0f * a);
 		//float t0 = (-b + glm::sqrt(discriminant)) / (2.0f * a);
+		float closestT = (-b - glm::sqrt(discriminant)) / (2.0f * a);
 
-		if (closestT < hitDistance)
+		if (closestT > 0.0f && closestT < hitDistance)
 		{
 			hitDistance = closestT;
 			closestSphere = (int)i;
@@ -145,12 +164,6 @@ Renderer::HitPayload Renderer::Miss(const Ray& ray)
 	payload.HitDistance = -1.0f;
 	return payload;
 }
-
-// calculate hit distances/point
-// calculate normal of hit point
-// apply some shading to the sphere
-// implement aspect ratio
-// be able to move sphere
 
 
 // ===== S E L F    M A D E    C O D E  ===== //
