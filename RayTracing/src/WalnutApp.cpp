@@ -19,15 +19,15 @@ public:
 	{
 		Material& pinkSphere = m_Scene.Materials.emplace_back();
 		pinkSphere.Albedo = { 1.0f, 0.0f, 1.0f };
-		pinkSphere.Roughness = 0.0f;
+		pinkSphere.Roughness = 0.85f;
 
 		Material& blueSphere = m_Scene.Materials.emplace_back();
 		blueSphere.Albedo = { 0.1f, 0.05f, 0.85f };
-		pinkSphere.Roughness = 0.1f;
+		blueSphere.Roughness = 0.35f;
 
 		{
 			Sphere sphere;
-			sphere.Position = { 0.0f, 0.0f, -2.0f };
+			sphere.Position = { 0.0f, 0.5f, -2.0f };
 			sphere.Radius = 1.0f;
 			sphere.MaterialIndex = 0;
 			m_Scene.Spheres.push_back(sphere);
@@ -35,7 +35,7 @@ public:
 
 		{
 			Sphere sphere;
-			sphere.Position = { 0.0f, -101.0f, -2.0f };
+			sphere.Position = { 0.0f, -100.5f, -2.0f };
 			sphere.Radius = 100.0f;
 			sphere.MaterialIndex = 1;
 			m_Scene.Spheres.push_back(sphere);
@@ -44,7 +44,8 @@ public:
 
 	virtual void OnUpdate(float ts) override
 	{
-		m_Camera.OnUpdate(ts);
+		if (m_Camera.OnUpdate(ts))
+			m_Renderer.ResetFrameIndex();
 	}
 
 	virtual void OnUIRender() override
@@ -52,13 +53,16 @@ public:
 		ImGui::Begin("Settings");
 		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
 
-		ImGui::SliderFloat3("Light Direction: ", m_LightDirection, -1, 1);
+		ImGui::SliderFloat3("Light Direction", m_LightDirection, -1, 1);
 		m_Renderer.SetLightDirection(glm::vec3(m_LightDirection[0], m_LightDirection[1], m_LightDirection[2]));
 
-		if (ImGui::Button("Render"))
+		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
+
+		if (ImGui::Button("Reset"))
 		{
-			Render();
+			m_Renderer.ResetFrameIndex();
 		}
+
 		ImGui::End();
 
 		ImGui::Begin("Scene");
@@ -124,7 +128,6 @@ private:
 	Scene m_Scene;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
-	float m_SphereColor[3] = { 0.7f, 0.7f, 1.0f };
 	float m_LightDirection[3] = { -0.77f, -0.5f, -0.87f };
 
 	float m_LastRenderTime = 0.0f;

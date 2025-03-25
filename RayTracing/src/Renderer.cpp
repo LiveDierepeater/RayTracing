@@ -32,6 +32,9 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 
 	delete[] m_ImageData;
 	m_ImageData = new uint32_t[width * height];
+
+	delete[] m_AccumulationData;
+	m_AccumulationData = new glm::vec4[width * height];
 }
 
 void Renderer::Render(const Scene& scene, const Camera& camera)
@@ -39,19 +42,30 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 	m_ActiveScene = &scene;
 	m_ActiveCamera = &camera;
 
-	
+	if (m_FrameIndex == 1)
+		memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
 
 	for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
 	{
 		for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
 		{
 			glm::vec4 color = PerPixel(x, y);
-			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
-			m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
+			m_AccumulationData[x + y * m_FinalImage->GetWidth()] += color;
+
+			glm::vec4 accumulatedColor = m_AccumulationData[x + y * m_FinalImage->GetWidth()];
+			accumulatedColor /= (float)m_FrameIndex;
+
+			accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+			m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(accumulatedColor);
 		}
 	}
 
 	m_FinalImage->SetData(m_ImageData);
+
+	if (m_Settings.Accumulate)
+		m_FrameIndex++;
+	else
+		m_FrameIndex = 1;
 }
 
 glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
@@ -165,24 +179,3 @@ Renderer::HitPayload Renderer::Miss(const Ray& ray)
 	payload.HitDistance = -1.0f;
 	return payload;
 }
-
-
-// ===== S E L F    M A D E    C O D E  ===== //
-// =====          22.03.2025            ===== //
-/*float t = -b - std::sqrt(discriminant);
-
-if (t > 0)
-{
-	t = t / (2.0f * a);
-	glm::vec3 hitPoint = rayOrigin + rayDirection * t;
-	glm::vec3 hitNormal = glm::normalize(hitPoint - sphereOrigin);
-
-	auto lightIntensity = glm::dot(-rayDirection, hitNormal);
-	lightIntensity = glm::clamp(lightIntensity, 0.0f, 1.0f);
-
-	auto brightness = (uint8_t)(255.0f * lightIntensity);
-	//return 0xff000000 | (brightness << 16) | (brightness << 8) | brightness;
-	return glm::vec4(lightIntensity, lightIntensity, lightIntensity, 1);
-}
-
-return glm::vec4(1, 0, 1, 1);*/
