@@ -71,6 +71,7 @@ public:
 		m_Renderer.SetLightDirection(glm::vec3(m_LightDirection[0], m_LightDirection[1], m_LightDirection[2]));
 
 		ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulate);
+		ImGui::Checkbox("SlowRandom", &m_Renderer.GetSettings().SlowRandom);
 
 		if (ImGui::Button("Reset"))
 		{
