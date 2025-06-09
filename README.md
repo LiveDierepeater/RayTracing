@@ -1,3 +1,7 @@
+# Disclaimer
+I started this project out of curiosity. In the meantime, I have delved deeper into rendering pipelines and the basics of ray tracing.
+These files were created in the course of a ray tracing series from the YouTube channel ‘The Cherno’. Copying code is nothing special - I just want to show that I'm interested in many things and can familiarise myself with them quickly.
+
 # Walnut App Template
 
 This is a simple app template for [Walnut](https://github.com/TheCherno/Walnut) - unlike the example within the Walnut repository, this keeps Walnut as an external submodule and is much more sensible for actually building applications. See the [Walnut](https://github.com/TheCherno/Walnut) repository for more details.
